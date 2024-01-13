@@ -1,4 +1,5 @@
 <script lang="ts">
+	//import "https://3dmol.csb.pitt.edu/build/3Dmol.js";
 	import { BlockLabel, Empty, ShareButton } from "@gradio/atoms";
 	import { ModifyUpload } from "@gradio/upload";
 	import type { SelectData } from "@gradio/utils";
@@ -16,7 +17,7 @@
 	export let label: string;
 	export let root = "";
 	export let proxy_url: null | string = null;
-	export let value: { image: FileData; caption: string | null }[] | null = null;
+	export let value: { molecule: FileData; caption: string | null }[] | null = null;
 	export let columns: number | number[] | undefined = [2];
 	export let rows: number | number[] | undefined = undefined;
 	export let height: number | "auto" = "auto";
@@ -39,16 +40,16 @@
 
 	$: was_reset = value == null || value.length == 0 ? true : was_reset;
 
-	let _value: { image: FileData; caption: string | null }[] | null = null;
+	let _value: { molecule: FileData; caption: string | null }[] | null = null;
 	$: _value =
 		value === null
 			? null
 			: value.map((data) => ({
-					image: normalise_file(data.image, root, proxy_url) as FileData,
+					molecule: normalise_file(data.molecule, root, proxy_url) as FileData,
 					caption: data.caption
 			  }));
 
-	let prevValue: { image: FileData; caption: string | null }[] | null | null =
+	let prevValue: { molecule: FileData; caption: string | null }[] | null | null =
 		value;
 	if (selected_index === null && preview && value?.length) {
 		selected_index = 0;
@@ -57,7 +58,7 @@
 
 	$: if (!dequal(prevValue, value)) {
 		// When value is falsy (clear button or first load),
-		// preview determines the selected image
+		// preview determines the selected molecule
 		if (was_reset) {
 			selected_index = preview && value?.length ? 0 : null;
 			was_reset = false;
@@ -214,7 +215,7 @@
 			>
 				<img
 					data-testid="detailed-image"
-					src={_value[selected_index].image.url}
+					src={_value[selected_index].molecule.url}
 					alt={_value[selected_index].caption || ""}
 					title={_value[selected_index].caption || null}
 					class:with-caption={!!_value[selected_index].caption}
@@ -231,7 +232,7 @@
 				class="thumbnails scroll-hide"
 				data-testid="container_el"
 			>
-				{#each _value as image, i}
+				{#each _value as molecule, i}
 					<button
 						bind:this={el[i]}
 						on:click={() => (selected_index = i)}
@@ -240,8 +241,8 @@
 						aria-label={"Thumbnail " + (i + 1) + " of " + _value.length}
 					>
 						<img
-							src={image.image.url}
-							title={image.caption || null}
+							src={molecule.molecule.url}
+							title={molecule.caption || null}
 							data-testid={"thumbnail " + (i + 1)}
 							alt=""
 							loading="lazy"
@@ -282,9 +283,9 @@
 				>
 					<img
 						alt={entry.caption || ""}
-						src={typeof entry.image === "string"
-							? entry.image
-							: entry.image.url}
+						src={typeof entry.molecule === "string"
+							? entry.molecule
+							: entry.molecule.url}
 						loading="lazy"
 					/>
 					{#if entry.caption}

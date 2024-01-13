@@ -1,5 +1,11 @@
 <script context="module" lang="ts">
 	export { default as BaseGallery } from "./shared/Gallery.svelte";
+
+	// Import the 3Dmol.js library
+	//import * as Mol3D from "/shared/3Dmol-min.js";
+	// Export it to be used in the component
+	//export { Mol3D };
+	//<scri/pt type="text/javascript" src="https://3dmol.csb.pitt.edu/build/3Dmol-min.js"></scr/ipt>
 </script>
 
 <script lang="ts">

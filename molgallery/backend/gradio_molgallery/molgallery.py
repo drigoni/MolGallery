@@ -12,19 +12,26 @@ from PIL import Image as _Image  # using _ to minimize namespace pollution
 
 from gradio import processing_utils, utils
 from gradio.components.base import Component
-from gradio.data_classes import FileData, GradioModel, GradioRootModel
+from gradio.data_classes import GradioModel, GradioRootModel
 from gradio.events import Events
+
+import py3Dmol
+import rdkit
+from rdkit.Chem import Draw
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit.Chem.rdchem import Mol
 
 set_documentation_group("component")
 
 
-class GalleryImage(GradioModel):
-    image: FileData
+class GalleryMolecule(GradioModel):
+    molecule: str
     caption: Optional[str] = None
 
 
 class GalleryData(GradioRootModel):
-    root: List[GalleryImage]
+    root: List[GalleryMolecule]
 
 
 @document()
@@ -43,8 +50,9 @@ class MolGallery(Component):
 
     def __init__(
         self,
-        value: list[np.ndarray | _Image.Image | str | Path | tuple]
-        | Callable
+        value: Mol
+        | [Mol]
+        | list[tuple[Mol | str, str]]
         | None = None,
         *,
         label: str | None = None,
@@ -70,7 +78,7 @@ class MolGallery(Component):
     ):
         """
         Parameters:
-            value: List of images to display in the gallery by default. If callable, the function will be called whenever the app loads to set the initial value of the component.
+            value: List of molecules to display in the gallery by default. If callable, the function will be called whenever the app loads to set the initial value of the component.
             label: The label for this component. Appears above the component and is also used as the header if there are a table of examples for this component. If None and used in a `gr.Interface`, the label will be the name of the parameter this component is assigned to.
             every: If `value` is a callable, run the function 'every' number of seconds while the client connection is open. Has no effect otherwise. Queue must be enabled. The event can be accessed (e.g. to cancel it) via this component's .load_event attribute.
             show_label: if True, will display label.
@@ -81,13 +89,13 @@ class MolGallery(Component):
             elem_id: An optional string that is assigned as the id of this component in the HTML DOM. Can be used for targeting CSS styles.
             elem_classes: An optional list of strings that are assigned as the classes of this component in the HTML DOM. Can be used for targeting CSS styles.
             render: If False, component will not render be rendered in the Blocks context. Should be used if the intention is to assign event listeners now but render the component later.
-            columns: Represents the number of images that should be shown in one row, for each of the six standard screen sizes (<576px, <768px, <992px, <1200px, <1400px, >1400px). If fewer than 6 are given then the last will be used for all subsequent breakpoints
+            columns: Represents the number of molecules that should be shown in one row, for each of the six standard screen sizes (<576px, <768px, <992px, <1200px, <1400px, >1400px). If fewer than 6 are given then the last will be used for all subsequent breakpoints
             rows: Represents the number of rows in the image grid, for each of the six standard screen sizes (<576px, <768px, <992px, <1200px, <1400px, >1400px). If fewer than 6 are given then the last will be used for all subsequent breakpoints
-            height: The height of the gallery component, in pixels. If more images are displayed than can fit in the height, a scrollbar will appear.
-            allow_preview: If True, images in the gallery will be enlarged when they are clicked. Default is True.
-            preview: If True, MolGallery will start in preview mode, which shows all of the images as thumbnails and allows the user to click on them to view them in full size. Only works if allow_preview is True.
+            height: The height of the gallery component, in pixels. If more molecules are displayed than can fit in the height, a scrollbar will appear.
+            allow_preview: If True, molecules in the gallery will be enlarged when they are clicked. Default is True.
+            preview: If True, MolGallery will start in preview mode, which shows all of the molecules as thumbnails and allows the user to click on them to view them in full size. Only works if allow_preview is True.
             selected_index: The index of the image that should be initially selected. If None, no image will be selected at start. If provided, will set MolGallery to preview mode unless allow_preview is set to False.
-            object_fit: CSS object-fit property for the thumbnail images in the gallery. Can be "contain", "cover", "fill", "none", or "scale-down".
+            object_fit: CSS object-fit property for the thumbnail molecules in the gallery. Can be "contain", "cover", "fill", "none", or "scale-down".
             show_share_button: If True, will show a share icon in the corner of the component that allows user to share outputs to Hugging Face Spaces Discussions. If False, icon does not appear. If set to None (default behavior), then the icon appears if this Gradio app is launched on Spaces, but not otherwise.
             show_download_button: If True, will show a download button in the corner of the selected image. If False, the icon does not appear. Default is True.
         """
@@ -125,43 +133,33 @@ class MolGallery(Component):
 
     def postprocess(
         self,
-        value: list[np.ndarray | _Image.Image | str]
-        | list[tuple[np.ndarray | _Image.Image | str, str]]
+        value: Mol
+        | [Mol]
+        | list[tuple[Mol | str, str]]
         | None,
     ) -> GalleryData:
         """
         Parameters:
-            value: list of images, or list of (image, caption) tuples
+            value: list of molecules, or list of (molecules, caption) tuples
         Returns:
-            list of string file paths to images in temp directory
+            list of string file paths to molecules in temp directory
         """
         if value is None:
             return GalleryData(root=[])
         output = []
-        for img in value:
+        for mol in value:
             url = None
             caption = None
-            if isinstance(img, (tuple, list)):
-                img, caption = img
-            if isinstance(img, np.ndarray):
-                file = processing_utils.save_img_array_to_cache(
-                    img, cache_dir=self.GRADIO_CACHE
-                )
-                file_path = str(utils.abspath(file))
-            elif isinstance(img, _Image.Image):
-                file = processing_utils.save_pil_to_cache(
-                    img, cache_dir=self.GRADIO_CACHE
-                )
-                file_path = str(utils.abspath(file))
-            elif isinstance(img, str):
-                file_path = img
-                url = img if is_http_url_like(img) else None
-            elif isinstance(img, Path):
-                file_path = str(img)
+            if isinstance(mol, (tuple, list)):
+                mol, caption = mol
+            if isinstance(mol, Mol):
+                mol = MolGallery.get_PDB_block(mol)
+            if isinstance(mol, str):
+                pdb_string = mol
             else:
-                raise ValueError(f"Cannot process type as image: {type(img)}")
-            entry = GalleryImage(
-                image=FileData(path=file_path, url=url), caption=caption
+                raise ValueError(f"Cannot process type as molecule: {type(mol)}")
+            entry = GalleryMolecule(
+                molecule=pdb_string, caption=caption
             )
             output.append(entry)
         return GalleryData(root=output)
@@ -170,8 +168,20 @@ class MolGallery(Component):
         if payload is None or not payload.root:
             return None
         return payload
-
+    
     def example_inputs(self) -> Any:
-        return [
-            "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png"
+        examples = [
+            "CCC",
+            "C=C1COC(O)(C2OCOC(C3CC(=O)NC(=O)C3)C2O)C1C"
         ]
+        list_of_molecules = [Chem.MolFromSmiles(i) for i in examples]
+        return list_of_molecules
+
+    def get_PDB_block(current_mol):
+        # Generate 3D coordinates for the molecule
+        current_mol = Chem.AddHs(current_mol)
+        AllChem.EmbedMolecule(current_mol)
+        # Convert the Mol object to a PDB block string
+        pdb_block = Chem.MolToPDBBlock(current_mol)
+        return pdb_block
+    
