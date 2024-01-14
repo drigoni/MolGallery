@@ -32,11 +32,9 @@ class GalleryData(GradioRootModel):
 @document()
 class MolGallery3D(Component):
     """
-    Used to display a list of images as a gallery that can be scrolled through.
+    Used to display a list of interactive 3D molecular structures as a gallery that can be scrolled through.
     Preprocessing: this component does *not* accept input.
-    Postprocessing: expects a list of images in any format, {List[numpy.array | PIL.Image | str | pathlib.Path]}, or a {List} of (image, {str} caption) tuples and displays them.
-
-    Demos: fake_gan
+    Postprocessing: expects a list of molecules in any format, {List[Mol | str]}, or a {List} of (molecule, {str} caption) tuples and displays them.
     """
 
     EVENTS = [Events.select]
@@ -156,11 +154,11 @@ class MolGallery3D(Component):
     
     def example_inputs(self) -> Any:
         examples = [
-            "CCC",
-            "C=C1COC(O)(C2OCOC(C3CC(=O)NC(=O)C3)C2O)C1C",
-            "C=C1COC(O)(C2OCOC(C3CC(=O)NC(=O)C3)C2O)C1C",
+            "C1=CC(=CC=C1CC(C(=O)O)N)N(CCCl)CCCl",
+            "C1CCNC(C1)C2(CN(C2)C(=O)C3=C(C(=C(C=C3)F)F)NC4=C(C=C(C=C4)I)F)O",
+            "CN(C)NN=C1C(=NC=N1)C(=O)N",
         ]
-        list_of_molecules = [Chem.MolFromSmiles(i) for i in examples]
+        list_of_molecules = [Chem.AddHs(Chem.MolFromSmiles(i)) for i in examples]
         return list_of_molecules
 
     def get_PDB_block(current_mol):
