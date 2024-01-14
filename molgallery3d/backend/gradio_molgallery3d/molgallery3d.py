@@ -30,7 +30,7 @@ class GalleryData(GradioRootModel):
 
 
 @document()
-class MolGallery(Component):
+class MolGallery3D(Component):
     """
     Used to display a list of images as a gallery that can be scrolled through.
     Preprocessing: this component does *not* accept input.
@@ -138,7 +138,7 @@ class MolGallery(Component):
             if isinstance(mol, (tuple, list)):
                 mol, caption = mol
             if isinstance(mol, Mol):
-                mol = MolGallery.get_PDB_block(mol)
+                mol = MolGallery3D.get_PDB_block(mol)
             if isinstance(mol, str):
                 pdb_string = mol
             else:

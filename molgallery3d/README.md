@@ -6,5 +6,5 @@ A Custom Gradio component.
 
 ```python
 import gradio as gr
-from gradio_molgallery import MolGallery
+from gradio_molgallery import MolGallery3D
 ```

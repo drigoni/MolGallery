@@ -7,19 +7,18 @@ requires = [
 build-backend = "hatchling.build"
 
 [project]
-name = "gradio_molgallery"
+name = "gradio_molgallery3d"
 version = "0.0.1"
-description = "A gradio Gallery object made to display py3Dmol objects."
+description = "A Gradio component designed for displaying an interactive gallery of 3D molecular structures."
 readme = "README.md"
-license = "Apache License"
+license = "GPL-3.0-only"  #"GNU General Public License v3.0"
 requires-python = ">=3.8"
-authors = [{ name = "YOUR NAME", email = "YOUREMAIL@domain.com" }]
+authors = [{ name = "Davide Rigoni", email = "davider1994@gmail.com" }]
 keywords = ["gradio-custom-component", "gradio-template-Gallery", "Molecules Structures", "3D structures", "py3Dmol"]
 # Add dependencies here
 dependencies = ["gradio>=4.0,<5.0", "rdkit"]
 classifiers = [
   'Development Status :: 3 - Alpha',
-  'License :: OSI Approved :: Apache Software License',
   'Operating System :: OS Independent',
   'Programming Language :: Python :: 3',
   'Programming Language :: Python :: 3 :: Only',
@@ -36,7 +35,7 @@ classifiers = [
 dev = ["build", "twine"]
 
 [tool.hatch.build]
-artifacts = ["/backend/gradio_molgallery/templates", "*.pyi"]
+artifacts = ["/backend/gradio_molgallery3d/templates", "*.pyi", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["/backend/gradio_molgallery"]
+packages = ["/backend/gradio_molgallery3d"]
