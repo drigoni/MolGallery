@@ -7,6 +7,7 @@ example = MolGallery().example_inputs()
 with gr.Blocks() as demo:
     with gr.Row():
         MolGallery(label="Blank"),  # blank component
-        MolGallery(value=example, label="Populated"),  # populated component
+    with gr.Row():
+        MolGallery(value=[(i, 'prova') for i in example], label="Populated"),  # populated component
 
 demo.launch()

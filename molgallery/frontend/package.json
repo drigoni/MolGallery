@@ -14,7 +14,8 @@
     "@gradio/statustracker": "0.4.1",
     "@gradio/upload": "0.5.2",
     "@gradio/utils": "0.2.0",
-    "dequal": "^2.0.2"
+    "dequal": "^2.0.2",
+    "3dmol": "2.0.6"
   },
   "main": "./Index.svelte",
   "main_changeset": true,

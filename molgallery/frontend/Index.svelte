@@ -1,11 +1,5 @@
 <script context="module" lang="ts">
 	export { default as BaseGallery } from "./shared/Gallery.svelte";
-
-	// Import the 3Dmol.js library
-	//import * as Mol3D from "/shared/3Dmol-min.js";
-	// Export it to be used in the component
-	//export { Mol3D };
-	//<scri/pt type="text/javascript" src="https://3dmol.csb.pitt.edu/build/3Dmol-min.js"></scr/ipt>
 </script>
 
 <script lang="ts">
@@ -14,19 +8,15 @@
 	import Gallery from "./shared/Gallery.svelte";
 	import type { LoadingStatus } from "@gradio/statustracker";
 	import { StatusTracker } from "@gradio/statustracker";
-	import type { FileData } from "@gradio/client";
-	import { createEventDispatcher } from "svelte";
 
 	export let loading_status: LoadingStatus;
 	export let show_label: boolean;
 	export let label: string;
-	export let root: string;
-	export let proxy_url: null | string;
 	export let elem_id = "";
 	export let elem_classes: string[] = [];
 	export let visible = true;
 	export let value:
-		| { image: FileData; caption: string | null }[]
+		| { molecule: string; caption: string | null }[]
 		| null
 		| null = null;
 	export let container = true;
@@ -35,13 +25,6 @@
 	export let columns: number | number[] | undefined = [2];
 	export let rows: number | number[] | undefined = undefined;
 	export let height: number | "auto" = "auto";
-	export let preview: boolean;
-	export let allow_preview = true;
-	export let selected_index: number | null = null;
-	export let object_fit: "contain" | "cover" | "fill" | "none" | "scale-down" =
-		"cover";
-	export let show_share_button = false;
-	export let show_download_button = false;
 	export let gradio: Gradio<{
 		change: typeof value;
 		select: SelectData;
@@ -49,10 +32,6 @@
 		error: string;
 		prop_change: Record<string, any>;
 	}>;
-
-	const dispatch = createEventDispatcher();
-
-	$: selected_index, dispatch("prop_change", { selected_index });
 </script>
 
 <Block
@@ -80,17 +59,9 @@
 		{label}
 		{value}
 		{show_label}
-		{root}
-		{proxy_url}
 		{columns}
 		{rows}
 		{height}
-		{preview}
-		{object_fit}
-		{allow_preview}
-		bind:selected_index
-		{show_share_button}
-		{show_download_button}
 		i18n={gradio.i18n}
 	/>
 </Block>

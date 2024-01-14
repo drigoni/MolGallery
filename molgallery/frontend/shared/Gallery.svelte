@@ -1,181 +1,80 @@
 <script lang="ts">
-	//import "https://3dmol.csb.pitt.edu/build/3Dmol.js";
-	import { BlockLabel, Empty, ShareButton } from "@gradio/atoms";
-	import { ModifyUpload } from "@gradio/upload";
-	import type { SelectData } from "@gradio/utils";
-	import { dequal } from "dequal";
-	import { createEventDispatcher } from "svelte";
-	import { tick } from "svelte";
+	import { onMount, afterUpdate } from "svelte";
+	import Dmol from "3dmol";
 
-	import { Download, Image } from "@gradio/icons";
-	import { normalise_file, type FileData } from "@gradio/client";
-	import { format_gallery_for_sharing } from "./utils";
-	import { IconButton } from "@gradio/atoms";
-	import type { I18nFormatter } from "@gradio/utils";
+	import { BlockLabel, Empty, ShareButton } from "@gradio/atoms";
+	import {Image} from "@gradio/icons";
 
 	export let show_label = true;
 	export let label: string;
-	export let root = "";
-	export let proxy_url: null | string = null;
-	export let value: { molecule: FileData; caption: string | null }[] | null = null;
+	export let value: { molecule: string; caption: string | null }[] | null = null;
 	export let columns: number | number[] | undefined = [2];
 	export let rows: number | number[] | undefined = undefined;
 	export let height: number | "auto" = "auto";
-	export let preview: boolean;
-	export let allow_preview = true;
-	export let object_fit: "contain" | "cover" | "fill" | "none" | "scale-down" =
-		"cover";
-	export let show_share_button = false;
-	export let show_download_button = false;
-	export let i18n: I18nFormatter;
-	export let selected_index: number | null = null;
-
-	const dispatch = createEventDispatcher<{
-		change: undefined;
-		select: SelectData;
-	}>();
 
 	// tracks whether the value of the gallery was reset
 	let was_reset = true;
 
 	$: was_reset = value == null || value.length == 0 ? true : was_reset;
 
-	let _value: { molecule: FileData; caption: string | null }[] | null = null;
+	let _value: { molecule: string; caption: string | null }[] | null = null;
+
 	$: _value =
 		value === null
 			? null
-			: value.map((data) => ({
-					molecule: normalise_file(data.molecule, root, proxy_url) as FileData,
-					caption: data.caption
+			: value.map((data, i) => ({
+					molecule: data.molecule,
+					caption: data.caption,
 			  }));
-
-	let prevValue: { molecule: FileData; caption: string | null }[] | null | null =
-		value;
-	if (selected_index === null && preview && value?.length) {
-		selected_index = 0;
-	}
-	let old_selected_index: number | null = selected_index;
-
-	$: if (!dequal(prevValue, value)) {
-		// When value is falsy (clear button or first load),
-		// preview determines the selected molecule
-		if (was_reset) {
-			selected_index = preview && value?.length ? 0 : null;
-			was_reset = false;
-			// Otherwise we keep the selected_index the same if the
-			// gallery has at least as many elements as it did before
-		} else {
-			selected_index =
-				selected_index !== null &&
-				value !== null &&
-				selected_index < value.length
-					? selected_index
-					: null;
-		}
-		dispatch("change");
-		prevValue = value;
-	}
-
-	$: previous =
-		((selected_index ?? 0) + (_value?.length ?? 0) - 1) % (_value?.length ?? 0);
-	$: next = ((selected_index ?? 0) + 1) % (_value?.length ?? 0);
-
-	function handle_preview_click(event: MouseEvent): void {
-		const element = event.target as HTMLElement;
-		const x = event.clientX;
-		const width = element.offsetWidth;
-		const centerX = width / 2;
-
-		if (x < centerX) {
-			selected_index = previous;
-		} else {
-			selected_index = next;
-		}
-	}
-
-	function on_keydown(e: KeyboardEvent): void {
-		switch (e.code) {
-			case "Escape":
-				e.preventDefault();
-				selected_index = null;
-				break;
-			case "ArrowLeft":
-				e.preventDefault();
-				selected_index = previous;
-				break;
-			case "ArrowRight":
-				e.preventDefault();
-				selected_index = next;
-				break;
-			default:
-				break;
-		}
-	}
-
-	function isFileData(obj: any): obj is FileData {
-		return typeof obj === "object" && obj !== null && "data" in obj;
-	}
-
-	function getHrefValue(selected: any): string {
-		if (isFileData(selected)) {
-			return selected.path;
-		} else if (typeof selected === "string") {
-			return selected;
-		} else if (Array.isArray(selected)) {
-			return getHrefValue(selected[0]);
-		}
-		return "";
-	}
-
-	$: {
-		if (selected_index !== old_selected_index) {
-			old_selected_index = selected_index;
-			if (selected_index !== null) {
-				dispatch("select", {
-					index: selected_index,
-					value: _value?.[selected_index]
-				});
-			}
-		}
-	}
-
-	$: if (allow_preview) {
-		scroll_to_img(selected_index);
-	}
-
-	let el: HTMLButtonElement[] = [];
-	let container_element: HTMLDivElement;
-
-	async function scroll_to_img(index: number | null): Promise<void> {
-		if (typeof index !== "number") return;
-		await tick();
-
-		if (el[index] === undefined) return;
-
-		el[index]?.focus();
-
-		const { left: container_left, width: container_width } =
-			container_element.getBoundingClientRect();
-		const { left, width } = el[index].getBoundingClientRect();
-
-		const relative_left = left - container_left;
-
-		const pos =
-			relative_left +
-			width / 2 -
-			container_width / 2 +
-			container_element.scrollLeft;
-
-		if (container_element && typeof container_element.scrollTo === "function") {
-			container_element.scrollTo({
-				left: pos < 0 ? 0 : pos,
-				behavior: "smooth"
-			});
-		}
-	}
 
 	let client_height = 0;
 	let window_height = 0;
+
+	// Function to initialize 3Dmol.js for each molecule
+	function initializeMoleculeViewer(molecule: string, containerId: string): Dmol.GLViewer {
+		let viewer = Dmol.createViewer(containerId, {});
+		viewer.addModel(molecule, "pdb" + {_value});
+		viewer.setStyle({ stick: {} });
+		viewer.setBackgroundColor("white");
+		viewer.zoomTo();
+		viewer.render();
+		return viewer;
+	}
+
+	// Rotate the viewer automatically
+	function rotateMolecule(viewer: Dmol.GLViewer) {
+			viewer.rotate(1, 'y')
+			viewer.rotate(1, 'x')
+			requestAnimationFrame((time) => rotateMolecule(viewer));
+	}
+
+	function handleContextMenu(event) {
+		event.preventDefault();
+		
+		// Get the data URL of the canvas
+		const canvas = event.detail.target;
+		console.log(canvas);
+		var dt = canvas.toDataURL('image/png');
+		
+		// Trigger the download
+		var link = document.createElement('a');
+		link.href = dt;
+		link.download = 'molecule_image.png';
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
+
+	afterUpdate(() => {
+		// Trigger initialization when the component is mounted
+		if (_value) {
+			_value.forEach((entry, i) => {
+				const containerId = 'mol-canvas-id' + (i + 1);
+				let viewer = initializeMoleculeViewer(entry.molecule, containerId);
+				rotateMolecule(viewer);
+			});
+		}
+	});
 </script>
 
 <svelte:window bind:innerHeight={window_height} />
@@ -186,73 +85,6 @@
 {#if value === null || _value === null || _value.length === 0}
 	<Empty unpadded_box={true} size="large"><Image /></Empty>
 {:else}
-	{#if selected_index !== null && allow_preview}
-		<button on:keydown={on_keydown} class="preview">
-			<div class="icon-buttons">
-				{#if show_download_button}
-					<a
-						href={getHrefValue(value[selected_index])}
-						target={window.__is_colab__ ? "_blank" : null}
-						download="image"
-					>
-						<IconButton Icon={Download} label={i18n("common.download")} />
-					</a>
-				{/if}
-
-				<ModifyUpload
-					{i18n}
-					absolute={false}
-					on:clear={() => (selected_index = null)}
-				/>
-			</div>
-			<button
-				class="image-button"
-				on:click={(event) => handle_preview_click(event)}
-				style="height: calc(100% - {_value[selected_index].caption
-					? '80px'
-					: '60px'})"
-				aria-label="detailed view of selected image"
-			>
-				<img
-					data-testid="detailed-image"
-					src={_value[selected_index].molecule.url}
-					alt={_value[selected_index].caption || ""}
-					title={_value[selected_index].caption || null}
-					class:with-caption={!!_value[selected_index].caption}
-					loading="lazy"
-				/>
-			</button>
-			{#if _value[selected_index]?.caption}
-				<caption class="caption">
-					{_value[selected_index].caption}
-				</caption>
-			{/if}
-			<div
-				bind:this={container_element}
-				class="thumbnails scroll-hide"
-				data-testid="container_el"
-			>
-				{#each _value as molecule, i}
-					<button
-						bind:this={el[i]}
-						on:click={() => (selected_index = i)}
-						class="thumbnail-item thumbnail-small"
-						class:selected={selected_index === i}
-						aria-label={"Thumbnail " + (i + 1) + " of " + _value.length}
-					>
-						<img
-							src={molecule.molecule.url}
-							title={molecule.caption || null}
-							data-testid={"thumbnail " + (i + 1)}
-							alt=""
-							loading="lazy"
-						/>
-					</button>
-				{/each}
-			</div>
-		</button>
-	{/if}
-
 	<div
 		bind:clientHeight={client_height}
 		class="grid-wrap"
@@ -260,60 +92,29 @@
 	>
 		<div
 			class="grid-container"
-			style="--grid-cols:{columns}; --grid-rows:{rows}; --object-fit: {object_fit}; height: {height};"
+			style="--grid-cols:{columns}; --grid-rows:{rows}; height: {height};"
 			class:pt-6={show_label}
 		>
-			{#if show_share_button}
-				<div class="icon-button">
-					<ShareButton
-						{i18n}
-						on:share
-						on:error
-						value={_value}
-						formatter={format_gallery_for_sharing}
-					/>
-				</div>
-			{/if}
 			{#each _value as entry, i}
-				<button
-					class="thumbnail-item thumbnail-lg"
-					class:selected={selected_index === i}
-					on:click={() => (selected_index = i)}
-					aria-label={"Thumbnail " + (i + 1) + " of " + _value.length}
+				<div
+					class="molecule-item molecule-lg, mol-container"
+					aria-label={"Molecule " + (i + 1) + " of " + _value.length}
 				>
-					<img
-						alt={entry.caption || ""}
-						src={typeof entry.molecule === "string"
-							? entry.molecule
-							: entry.molecule.url}
-						loading="lazy"
-					/>
+					<!-- svelte-ignore a11y-no-static-element-interactions -->
+					<div on:contextmenu={handleContextMenu}
+					id={'mol-canvas-id' + (i + 1)}  class="mol-canvas"></div>
 					{#if entry.caption}
 						<div class="caption-label">
 							{entry.caption}
 						</div>
 					{/if}
-				</button>
+					</div>
 			{/each}
 		</div>
 	</div>
 {/if}
 
 <style lang="postcss">
-	.preview {
-		display: flex;
-		position: absolute;
-		top: 0px;
-		right: 0px;
-		bottom: 0px;
-		left: 0px;
-		flex-direction: column;
-		z-index: var(--layer-2);
-		backdrop-filter: blur(8px);
-		background: var(--background-fill-primary);
-		height: var(--size-full);
-	}
-
 	.fixed-height {
 		min-height: var(--size-80);
 		max-height: 55vh;
@@ -325,45 +126,7 @@
 		}
 	}
 
-	.image-button {
-		height: calc(100% - 60px);
-		width: 100%;
-		display: flex;
-	}
-	.preview img {
-		width: var(--size-full);
-		height: var(--size-full);
-		object-fit: contain;
-	}
-
-	.preview img.with-caption {
-		height: var(--size-full);
-	}
-
-	.caption {
-		padding: var(--size-2) var(--size-3);
-		overflow: hidden;
-		color: var(--block-label-text-color);
-		font-weight: var(--weight-semibold);
-		text-align: center;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		align-self: center;
-	}
-
-	.thumbnails {
-		display: flex;
-		position: absolute;
-		bottom: 0;
-		justify-content: center;
-		align-items: center;
-		gap: var(--spacing-lg);
-		width: var(--size-full);
-		height: var(--size-14);
-		overflow-x: scroll;
-	}
-
-	.thumbnail-item {
+	.molecule-item {
 		--ring-color: transparent;
 		position: relative;
 		box-shadow:
@@ -378,34 +141,9 @@
 		overflow: clip;
 	}
 
-	.thumbnail-item:hover {
+	.molecule-item:hover {
 		--ring-color: var(--color-accent);
 		filter: brightness(1.1);
-	}
-
-	.thumbnail-item.selected {
-		--ring-color: var(--color-accent);
-	}
-
-	.thumbnail-small {
-		flex: none;
-		transform: scale(0.9);
-		transition: 0.075s;
-		width: var(--size-9);
-		height: var(--size-9);
-	}
-
-	.thumbnail-small.selected {
-		--ring-color: var(--color-accent);
-		transform: scale(1);
-		border-color: var(--color-accent);
-	}
-
-	.thumbnail-small > img {
-		width: var(--size-full);
-		height: var(--size-full);
-		overflow: hidden;
-		object-fit: var(--object-fit);
 	}
 
 	.grid-wrap {
@@ -424,15 +162,12 @@
 		gap: var(--spacing-lg);
 	}
 
-	.thumbnail-lg > img {
-		width: var(--size-full);
-		height: var(--size-full);
-		overflow: hidden;
-		object-fit: var(--object-fit);
-	}
-
-	.thumbnail-lg:hover .caption-label {
-		opacity: 0.5;
+	.mol-canvas {
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		top: 0;
+		left: 0;
 	}
 
 	.caption-label {
@@ -451,22 +186,5 @@
 		text-align: left;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	.icon-button {
-		position: absolute;
-		top: 0px;
-		right: 0px;
-		z-index: var(--layer-1);
-	}
-
-	.icon-buttons {
-		display: flex;
-		position: absolute;
-		right: 0;
-	}
-
-	.icon-buttons a {
-		margin: var(--size-1) 0;
 	}
 </style>
