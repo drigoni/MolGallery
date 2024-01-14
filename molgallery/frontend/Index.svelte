@@ -25,6 +25,7 @@
 	export let columns: number | number[] | undefined = [2];
 	export let rows: number | number[] | undefined = undefined;
 	export let height: number | "auto" = "auto";
+	export let automatic_rotation: boolean = true;
 	export let gradio: Gradio<{
 		change: typeof value;
 		select: SelectData;
@@ -62,6 +63,6 @@
 		{columns}
 		{rows}
 		{height}
-		i18n={gradio.i18n}
+		{automatic_rotation}
 	/>
 </Block>

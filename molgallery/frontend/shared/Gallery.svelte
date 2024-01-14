@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { onMount, afterUpdate } from "svelte";
+	import {afterUpdate } from "svelte";
 	import Dmol from "3dmol";
 
-	import { BlockLabel, Empty, ShareButton } from "@gradio/atoms";
+	import {BlockLabel, Empty } from "@gradio/atoms";
 	import {Image} from "@gradio/icons";
 
 	export let show_label = true;
@@ -11,6 +11,7 @@
 	export let columns: number | number[] | undefined = [2];
 	export let rows: number | number[] | undefined = undefined;
 	export let height: number | "auto" = "auto";
+	export let automatic_rotation: boolean = true;
 
 	// tracks whether the value of the gallery was reset
 	let was_reset = true;
@@ -43,23 +44,25 @@
 
 	// Rotate the viewer automatically
 	function rotateMolecule(viewer: Dmol.GLViewer) {
-			viewer.rotate(1, 'y')
-			viewer.rotate(1, 'x')
+			viewer.rotate(0.3, 'y')
+			viewer.rotate(0.3, 'x')
 			requestAnimationFrame((time) => rotateMolecule(viewer));
 	}
 
+	// function to download the image on right click
 	function handleContextMenu(event) {
 		event.preventDefault();
 		
 		// Get the data URL of the canvas
-		const canvas = event.detail.target;
-		console.log(canvas);
+		const canvas = event.target;
+		const canvas_id = event.currentTarget.id;
+		console.log(canvas_id);
 		var dt = canvas.toDataURL('image/png');
 		
 		// Trigger the download
 		var link = document.createElement('a');
 		link.href = dt;
-		link.download = 'molecule_image.png';
+		link.download = canvas_id + '.png';
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
@@ -69,9 +72,11 @@
 		// Trigger initialization when the component is mounted
 		if (_value) {
 			_value.forEach((entry, i) => {
-				const containerId = 'mol-canvas-id' + (i + 1);
+				const containerId = 'mol-canvas-id-' + (i + 1);
 				let viewer = initializeMoleculeViewer(entry.molecule, containerId);
-				rotateMolecule(viewer);
+				if (automatic_rotation) {
+					rotateMolecule(viewer);
+				}
 			});
 		}
 	});
@@ -101,14 +106,13 @@
 					aria-label={"Molecule " + (i + 1) + " of " + _value.length}
 				>
 					<!-- svelte-ignore a11y-no-static-element-interactions -->
-					<div on:contextmenu={handleContextMenu}
-					id={'mol-canvas-id' + (i + 1)}  class="mol-canvas"></div>
+					<div on:contextmenu={handleContextMenu} id={'mol-canvas-id-' + (i + 1)}  class="mol-canvas"></div>
 					{#if entry.caption}
 						<div class="caption-label">
 							{entry.caption}
 						</div>
 					{/if}
-					</div>
+				</div>
 			{/each}
 		</div>
 	</div>

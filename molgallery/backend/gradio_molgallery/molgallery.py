@@ -2,22 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Callable, List, Literal, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 from gradio_client.documentation import document, set_documentation_group
-from gradio_client.utils import is_http_url_like
 from PIL import Image as _Image  # using _ to minimize namespace pollution
 
-from gradio import processing_utils, utils
+from gradio import utils
 from gradio.components.base import Component
 from gradio.data_classes import GradioModel, GradioRootModel
 from gradio.events import Events
 
-import py3Dmol
-import rdkit
-from rdkit.Chem import Draw
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import Mol
@@ -68,6 +63,7 @@ class MolGallery(Component):
         columns: int | tuple | None = 2,
         rows: int | tuple | None = None,
         height: int | float | None = None,
+        automatic_rotation: bool = True,
     ):
         """
         Parameters:
@@ -84,6 +80,7 @@ class MolGallery(Component):
             columns: Represents the number of molecules that should be shown in one row, for each of the six standard screen sizes (<576px, <768px, <992px, <1200px, <1400px, >1400px). If fewer than 6 are given then the last will be used for all subsequent breakpoints
             rows: Represents the number of rows in the image grid, for each of the six standard screen sizes (<576px, <768px, <992px, <1200px, <1400px, >1400px). If fewer than 6 are given then the last will be used for all subsequent breakpoints
             height: The height of the gallery component, in pixels. If more molecules are displayed than can fit in the height, a scrollbar will appear.
+            automatic_rotation: If True, will automatically rotate the molecule in the gallery.
         """
         self.columns = columns
         self.rows = rows
@@ -105,6 +102,7 @@ class MolGallery(Component):
             if show_share_button is None
             else show_share_button
         )
+        self.automatic_rotation = automatic_rotation
         super().__init__(
             label=label,
             every=None,
@@ -167,7 +165,6 @@ class MolGallery(Component):
 
     def get_PDB_block(current_mol):
         # Generate 3D coordinates for the molecule
-        current_mol = Chem.AddHs(current_mol)
         AllChem.EmbedMolecule(current_mol)
         # Convert the Mol object to a PDB block string
         pdb_block = Chem.MolToPDBBlock(current_mol)

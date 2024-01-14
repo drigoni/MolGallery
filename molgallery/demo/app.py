@@ -8,6 +8,6 @@ with gr.Blocks() as demo:
     with gr.Row():
         MolGallery(label="Blank"),  # blank component
     with gr.Row():
-        MolGallery(value=[(i, 'prova') for i in example], label="Populated"),  # populated component
+        MolGallery(value=[(mol, str(i+1)) for i, mol in enumerate(example)], automatic_rotation=True),  # populated component
 
 demo.launch()
