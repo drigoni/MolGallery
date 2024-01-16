@@ -35,7 +35,7 @@ classifiers = [
 dev = ["build", "twine"]
 
 [tool.hatch.build]
-artifacts = ["/backend/gradio_molgallery3d/templates", "*.pyi", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates"]
+artifacts = ["/backend/gradio_molgallery3d/templates", "*.pyi", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates", "backend/gradio_molgallery3d/templates"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["/backend/gradio_molgallery3d"]
