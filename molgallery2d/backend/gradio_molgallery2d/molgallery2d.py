@@ -177,7 +177,6 @@ class MolGallery2D(Component):
     def example_inputs(self) -> Any:
         examples = [
             "C1=CC(=CC=C1CC(C(=O)O)N)N(CCCl)CCCl",
-            "C1CCNC(C1)C2(CN(C2)C(=O)C3=C(C(=C(C=C3)F)F)NC4=C(C=C(C=C4)I)F)O",
             "CN(C)NN=C1C(=NC=N1)C(=O)N",
         ]
         list_of_molecules = [Chem.MolFromSmiles(i) for i in examples]
